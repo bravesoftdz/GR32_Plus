@@ -1254,6 +1254,7 @@ var
 begin
   Result := Visible and inherited DoHitTest(X, Y);
 
+  {
   if Result and not (rboAllowRotation in FOptions) then
   begin
     if not TAffineTransformationAccess(FTransformation).TransformValid then
@@ -1262,6 +1263,29 @@ begin
       Local := ReverseTransform(Point(X, Y));
 
     Result := PtInRect(Rect(-FThreshold, -FThreshold, FSize.cx + FThreshold, FSize.cy + FThreshold), Local);
+  end;
+  }
+
+  if Result then
+  begin
+    if rboAllowRotation in FOptions then
+    begin
+      if not TAffineTransformationAccess(FTransformation).TransformValid then
+        TAffineTransformationAccess(FTransformation).PrepareTransform;
+      with FTransformation do
+        Local := ReverseTransform(Point(X, Y));
+
+      Result := PtInRect(Rect(-FThreshold - 70, -FThreshold - 70, FSize.cx + FThreshold + 70, FSize.cy + FThreshold + 70), Local);
+    end
+    else
+    begin
+      if not TAffineTransformationAccess(FTransformation).TransformValid then
+        TAffineTransformationAccess(FTransformation).PrepareTransform;
+      with FTransformation do
+        Local := ReverseTransform(Point(X, Y));
+
+      Result := PtInRect(Rect(-FThreshold, -FThreshold, FSize.cx + FThreshold, FSize.cy + FThreshold), Local);
+    end;
   end;
 
   (*
@@ -1604,7 +1628,7 @@ begin
     FOldAnchor := FTransformation.GetTransformedBounds.TopLeft; //top left corner as anchor
     //FOldAbsAnchor := FTransformation.ReverseTransform(FOldAnchor);
     FOldAbsAnchor.X := FOldAnchor.X - FOldPosition.X;
-    FOldAbsAnchor.Y := FOldAnchor.Y - FOldPosition.Y; 
+    FOldAbsAnchor.Y := FOldAnchor.Y - FOldPosition.Y;
 
     FDragPos := Point(X, Y);
   end;

@@ -228,6 +228,9 @@ procedure TMainForm.FormCreate(Sender: TObject);
         B.PivotPoint := FloatPoint(Bitmap.Width / 2, Bitmap.Height / 2);
         // B.PivotPoint := FloatPoint(0, 0);
 
+
+        B.MouseEvents := True;
+
       except
         Free;
         raise;
@@ -576,6 +579,8 @@ begin
 
         B.PivotPoint := FloatPoint(Bitmap.Width / 2, Bitmap.Height / 2);
         // B.PivotPoint := FloatPoint(0, 0);
+
+        B.MouseEvents := True;
       except
         Free;
         raise;
