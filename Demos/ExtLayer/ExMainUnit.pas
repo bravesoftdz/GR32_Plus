@@ -39,6 +39,7 @@ interface
 {$I GR32.inc}
 
 uses
+  Windows,
   {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus, ExtCtrls,
   ExtDlgs, StdCtrls, Buttons, GR32, GR32_Image, GR32_Layers, GR32_ExtLayers,
@@ -189,7 +190,7 @@ uses
 {$ENDIF}
   NewImageUnit, RGBALoaderUnit, Math, Printers, GR32_LowLevel, {GR32_Paths,
   GR32_VectorUtils,} GR32_Backends, {GR32_Text_VCL, GR32_ColorGradients,}
-  GR32_Polygons;
+  GR32_Polygons, GR32_Types;
 
 const
   RESAMPLER: array [Boolean] of TCustomResamplerClass = (TNearestResampler, TDraftResampler);
@@ -317,8 +318,37 @@ end;
 
 procedure TMainForm.LayerMouseDown(Sender: TObject; Buttons: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
+var
+  InputArray: array of TInput;
 begin
-  if Sender <> nil then Selection := TTransformationLayer(Sender);
+  if Sender <> nil then
+  begin
+    Selection := TTransformationLayer(Sender);
+
+    RBLayer.DragState := rdsMoveLayer;
+
+    SetLength( InputArray, 1 );
+    InputArray[0].Itype := INPUT_MOUSE;
+    InputArray[0].mi.mouseData := 0;
+    InputArray[0].mi.time := 0;
+    InputArray[0].mi.dwExtraInfo := 0;
+
+    InputArray[0].mi.dx := 0;
+    InputArray[0].mi.dy := 0;
+    InputArray[0].mi.dwFlags := MOUSEEVENTF_LEFTUP;
+
+    SendInput( Length(InputArray), InputArray[0], SizeOf(InputArray[0]) );
+    Sleep(1);
+    Application.ProcessMessages;
+
+    InputArray[0].mi.dx := 0;
+    InputArray[0].mi.dy := 0;
+    InputArray[0].mi.dwFlags := MOUSEEVENTF_LEFTDOWN;
+
+    SendInput( Length(InputArray), InputArray[0], SizeOf(InputArray[0]) );
+    Sleep(1);
+    Application.ProcessMessages;
+  end;
 end;
 
 procedure TMainForm.LayerOpacityChanged(Sender: TObject);

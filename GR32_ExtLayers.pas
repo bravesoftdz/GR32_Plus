@@ -299,7 +299,7 @@ type
     procedure Cancel;
 
     property ChildLayer: TTransformationLayer read FChildLayer write SetChildLayer;
-    property DragState: TRubberbandDragState read FDragState;
+    property DragState: TRubberbandDragState read FDragState write FDragState;
     property HandleSize: Integer read FHandleSize write SetHandleSize default 3;
     property HandleFill: TColor read FHandleFill write SetHandleFill default clWhite;
     property HandleFrame: TColor read FHandleFrame write SetHandleFrame default clBlack;
