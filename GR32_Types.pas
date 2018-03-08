@@ -1,4 +1,4 @@
-unit GR32_Types;
+﻿unit GR32_Types;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -155,6 +155,8 @@ uses
   
 //----------------------------------------------------------------------------------------------------------------------
 
+
+{
 function LoadCursor(const Name: PChar; Index: Cardinal): HCURSOR;
 
 // Loads a cursor from a cursor group given the group's name and the cursor's index.
@@ -172,7 +174,7 @@ type
     BytesInRes: Cardinal;
     CursorID: Word;
   end;
-  
+
 var
   Resource: HRSRC;
   ResData: HGlobal;
@@ -183,7 +185,7 @@ var
 begin
   Result := 0;
   // Load the entire cursor group to lookup the cursor.
-  Resource := FindResourceEx(HInstance, RT_GROUP_CURSOR, Name, LANG_NEUTRAL or SUBLANG_NEUTRAL shl 10);
+   Resource := FindResourceEx(HInstance, RT_GROUP_CURSOR, Name, LANG_NEUTRAL or SUBLANG_NEUTRAL shl 10);
   if Resource <> 0 then
   begin
     ResData := LoadResource(HInstance, Resource);
@@ -198,26 +200,90 @@ begin
           Index := Count - 1;
         // Advance to the proper resource dir structure (which directly follow the header).
         ResDir := Pointer(PChar(ResPointer) + 6 + Index * SizeOf(TCursorResDir));
-        
+
         // Find the bits for the cursor whose resource ID is given in the res dir. We can reuse the variables because
         // they are no longer needed. Resource data is automatically freed.
         Resource := FindResource(HInstance, MakeIntResource(ResDir.CursorID), RT_CURSOR);
 
         // Load and lock the cursor.
-        ResData := LoadResource(HInstance, Resource);                                      
+        ResData := LoadResource(HInstance, Resource);
         ResPointer := LockResource(ResData);
 
         // Create a handle to the cursor.
-        Result := CreateIconFromResourceEx(ResPointer, ResDir.BytesInRes, False, $30000, 0, 0, LR_DEFAULTCOLOR);
+        // if Assigned(ResPointer) then
+        begin
+          Result := CreateIconFromResourceEx(ResPointer, ResDir.BytesInRes, False, $30000, 0, 0, LR_DEFAULTCOLOR);
+        end;
       end;
     end;
-  end;                                                   
+  end;
+end;
+}
+
+
+function LoadCursor(const Name: PChar; Index: Cardinal): HCURSOR;
+
+// Loads a cursor from a cursor group given the group's name and the cursor's index.
+// The group name has the usual form used for calls to Windows.LoadCursor.
+
+{
+type
+  PCursorResDir = ^TCursorResDir;
+  TCursorResDir = packed record
+    Cursor: packed record
+      Width,
+      Height: Word;
+    end;
+    Planes: Word;
+    BitCount: Word;
+    BytesInRes: Cardinal;
+    CursorID: Word;
+  end;
+}
+var
+  Resource: HRSRC;
+  ResData: HGlobal;
+  ResPointer: Pointer;
+//   ResDir: PCursorResDir;
+//  Count: Cardinal;
+
+  nID: DWORD;
+begin
+  // https://msdn.microsoft.com/ko-kr/library/windows/desktop/ms648051(v=vs.85).aspx#_win32_Sharing_Icon_Resources
+  // 참조해서 소스 변경
+
+  Result := 0;
+  // Load the entire cursor group to lookup the cursor.
+   Resource := FindResourceEx(HInstance, RT_GROUP_CURSOR, Name, LANG_NEUTRAL or SUBLANG_NEUTRAL shl 10);
+  if Resource <> 0 then
+  begin
+    ResData := LoadResource(HInstance, Resource);
+    if ResData <> 0 then
+    begin
+      ResPointer := LockResource(ResData);
+      if Assigned(ResPointer) then
+      begin
+        nID := LookupIconIdFromDirectoryEx( ResPointer, FALSE, 0, 0, LR_DEFAULTCOLOR );
+
+        // Find the bits for the cursor whose resource ID is given in the res dir. We can reuse the variables because
+        // they are no longer needed. Resource data is automatically freed.
+        Resource := FindResource(HInstance, MakeIntResource(nID), RT_CURSOR);
+
+        // Load and lock the cursor.
+        ResData := LoadResource(HInstance, Resource);
+        ResPointer := LockResource(ResData);
+
+        // Create a handle to the cursor.
+        Result := CreateIconFromResourceEx(ResPointer, SizeofResource(HInstance, Resource), False, $30000, 0, 0, LR_DEFAULTCOLOR);
+      end;
+    end;
+  end;
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 procedure LoadCursors;
-                                                                             
+
 var
   Win2K: Boolean;
 
@@ -226,6 +292,7 @@ begin
   // other is a shadowed variant of the same cursor (index 1).
   // The latter can be used on Windows 2000 and up.
   Win2K := ((Win32Platform and VER_PLATFORM_WIN32_NT) <> 0) and (Win32MajorVersion > 4);
+
   with Screen do
   begin
     Cursors[crGrIBeam] := LoadCursor(MakeIntResource(250), Ord(Win2K));
@@ -302,7 +369,7 @@ begin
     Cursors[crGrSmallCross] := LoadCursor(MakeIntResource(328), Ord(Win2K));
     Cursors[crGrStamp] := LoadCursor(MakeIntResource(329), Ord(Win2K));
     Cursors[crGrStampHollow] := LoadCursor(MakeIntResource(330), Ord(Win2K));
-    Cursors[crGrCircleCross] := LoadCursor(MakeIntResource(333), Ord(Win2K));
+     Cursors[crGrCircleCross] := LoadCursor(MakeIntResource(333), Ord(Win2K));
     Cursors[crGrCrop] := LoadCursor(MakeIntResource(334), Ord(Win2K));
     Cursors[crGrScissor] := LoadCursor(MakeIntResource(335), Ord(Win2K));
     Cursors[crGrFountainPen] := LoadCursor(MakeIntResource(337), Ord(Win2K));
