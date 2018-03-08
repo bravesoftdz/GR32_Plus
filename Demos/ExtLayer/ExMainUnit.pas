@@ -1,4 +1,4 @@
-unit ExMainUnit;
+﻿unit ExMainUnit;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -42,7 +42,7 @@ uses
   {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus, ExtCtrls,
   ExtDlgs, StdCtrls, Buttons, GR32, GR32_Image, GR32_Layers, GR32_ExtLayers,
-  GR32_RangeBars, GR32_Filters, GR32_Transforms, GR32_Resamplers, ComCtrls;
+  GR32_RangeBars, GR32_Filters, GR32_Transforms, GR32_Resamplers, ComCtrls, PngImage;
 
 type
   TMainForm = class(TForm)
@@ -155,8 +155,8 @@ type
     procedure LayerDblClick(Sender: TObject);
     procedure LayerMouseDown(Sender: TObject; Buttons: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
-    procedure RBResizing(Sender: TObject; const OldLocation: TFloatRect;
-      var NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState);
+//    procedure RBResizing(Sender: TObject; const OldLocation: TFloatRect;
+//      var NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState);
     procedure PaintMagnifierHandler(Sender: TObject; Buffer: TBitmap32);
     procedure PaintSimpleDrawingHandler(Sender: TObject; Buffer: TBitmap32);
     procedure PaintButtonMockupHandler(Sender: TObject; Buffer: TBitmap32);
@@ -187,8 +187,8 @@ uses
 {$ELSE}
   LazJPG,
 {$ENDIF}
-  NewImageUnit, RGBALoaderUnit, Math, Printers, GR32_LowLevel, GR32_Paths,
-  GR32_VectorUtils, GR32_Backends, GR32_Text_VCL, GR32_ColorGradients,
+  NewImageUnit, RGBALoaderUnit, Math, Printers, GR32_LowLevel, {GR32_Paths,
+  GR32_VectorUtils,} GR32_Backends, {GR32_Text_VCL, GR32_ColorGradients,}
   GR32_Polygons;
 
 const
@@ -224,6 +224,10 @@ procedure TMainForm.FormCreate(Sender: TObject);
 
         ScaledViewport := True;
         OnMouseDown := LayerMouseDown;
+
+        B.PivotPoint := FloatPoint(Bitmap.Width / 2, Bitmap.Height / 2);
+        // B.PivotPoint := FloatPoint(0, 0);
+
       except
         Free;
         raise;
@@ -280,7 +284,7 @@ begin
   Result.ScaledViewport := True;
   Result.MouseEvents := True;
   Result.OnMouseDown := LayerMouseDown;
-  Result.OnDblClick := LayerDblClick;
+  // Result.OnDblClick := LayerDblClick;
 end;
 
 procedure TMainForm.CbxCroppedClick(Sender: TObject);
@@ -481,6 +485,57 @@ begin
   Selection := L;
 end;
 
+function PNGFileLoadAndAlphaToBitmap32(aPngFileName: String; aBmp32: TBitmap32): Boolean;
+type
+  TRGBByte = record
+    B, G, R: byte;
+  end;
+
+  PRGBArray = ^TRGBArray;
+  TRGBArray = array[0..0] of TRGBByte;
+
+var
+  fPngImage: TPngImage;
+  x, y: Integer;
+  fAlphaSLine: pngImage.pByteArray;
+  fSLine: PRGBArray;
+  fAlpha: Byte;
+begin
+  Result := False;
+  if not FileExists(aPngFileName) then Exit;
+
+  fPngImage := TPngImage.Create;
+  try
+    fPngImage.LoadFromFile( aPngFileName);
+
+    aBmp32.SetSize(fPngImage.Width, fPngImage.Height);
+
+    aBmp32.Clear(SetAlpha(clWhite32, 0));
+
+    for y := 0 to aBmp32.Height - 1 do
+    begin
+      fAlphaSLine := fPngImage.AlphaScanline[y];
+      fSLine := fPngImage.Scanline[y];
+
+      if not Assigned(fSLine) then Continue;
+
+      for x := 0 to aBmp32.Width - 1 do
+      begin
+        fAlpha := 255;
+        if Assigned(fAlphaSLine) then fAlpha := fAlphaSLine[X];
+
+        if fAlpha <= 0 then Continue;
+
+        aBmp32.Pixel[x,y] := Color32(fSLine[X].R, fSLine[X].G, fSLine[X].B, fAlpha);
+      end;
+    end;
+  finally
+    FreeAndNil(fPngImage);
+  end;
+  Result := True;
+end;
+
+
 procedure TMainForm.MnuNewBitmapLayerClick(Sender: TObject);
 var
   B: TExtBitmapLayer;
@@ -493,7 +548,16 @@ begin
       B := TExtBitmapLayer.Create(ImgView.Layers);
       with B do
       try
-        Bitmap.LoadFromFile(FileName);
+        if LowerCase(ExtractFileExt(FileName)) = '.png' then
+        begin
+          PNGFileLoadAndAlphaToBitmap32( FileName, Bitmap );
+        end
+        else
+        begin
+          Bitmap.LoadFromFile(FileName);
+        end;
+
+
         Bitmap.DrawMode := dmBlend;
         //Bitmap.ResamplerClassName := 'TKernelResampler';
 
@@ -509,6 +573,9 @@ begin
 
         ScaledViewport := True;
         OnMouseDown := LayerMouseDown;
+
+        B.PivotPoint := FloatPoint(Bitmap.Width / 2, Bitmap.Height / 2);
+        // B.PivotPoint := FloatPoint(0, 0);
       except
         Free;
         raise;
@@ -565,6 +632,9 @@ begin
 
         ScaledViewport := True;
         OnMouseDown := LayerMouseDown;
+
+        B.PivotPoint := FloatPoint(Bitmap.Width / 2, Bitmap.Height / 2);
+        // B.PivotPoint := FloatPoint(0, 0);
       end;
       Selection := B;
     end;
@@ -614,9 +684,9 @@ var
   RoundPoly: TArrayOfFloatPoint;
   TextPoly: TArrayOfArrayOfFloatPoint;
   Bounds, Dst: TFloatRect;
-  Path: TFlattenedPath;
-  Intf: ITextToPathSupport;
-  ColorGradient: TLinearGradientPolygonFiller;
+  // Path: TFlattenedPath;
+  // Intf: ITextToPathSupport;
+  // ColorGradient: TLinearGradientPolygonFiller;
 const
   CScale = 1 / 200;
 begin
@@ -813,7 +883,9 @@ begin
       if RBLayer = nil then
       begin
         RBLayer := TExtRubberBandLayer.Create(ImgView.Layers);
-        RBLayer.Options :=rblayer.options +[rboAllowPivotMove];
+
+        // RBLayer.Options :=rblayer.options +[rboAllowPivotMove];
+        RBLayer.Options :=rblayer.options;
         //RBLayer.MinHeight := 1;
         //RBLayer.MinWidth := 1;
       end
@@ -822,7 +894,7 @@ begin
       RBLayer.ChildLayer := Value;
       RBLayer.LayerOptions := LOB_VISIBLE or LOB_MOUSE_EVENTS or LOB_NO_UPDATE;
       //RBLayer.OnResizing := RBResizing;
-      RBLayer.OnDblClick := LayerDblClick;
+      // RBLayer.OnDblClick := LayerDblClick;
 
       if Value is TExtBitmapLayer then
         with TExtBitmapLayer(Value) do
@@ -896,6 +968,7 @@ begin
   end;
 end;
 
+(*
 procedure TMainForm.RBResizing(Sender: TObject;
   const OldLocation: TFloatRect; var NewLocation: TFloatRect;
   DragState: TRBDragState; Shift: TShiftState);
@@ -943,7 +1016,7 @@ begin
     end;
   end;
 end;
-
+*)
 procedure TMainForm.MnuFlattenClick(Sender: TObject);
 var
   B: TBitmap32;

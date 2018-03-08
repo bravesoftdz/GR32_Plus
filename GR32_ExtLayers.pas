@@ -1,4 +1,4 @@
-{
+﻿{
 Based on the newsgroup post (March 18, 2002,  news://news.g32.org/g32org.public.graphics32)
  <public@lischke-online.de ; <news:a755io$6t1$1@webserver9.elitedev.com>...
 ----
@@ -98,9 +98,9 @@ much extended in the future (then perhaps also with the new G32 lib).
 
 Ciao, Mike
 --
-www.delphi-gems.com 
-www.lischke-online.de 
-www.delphi-unicode.net 
+www.delphi-gems.com
+www.lischke-online.de
+www.delphi-unicode.net
 }
 unit GR32_ExtLayers;
 
@@ -109,7 +109,7 @@ unit GR32_ExtLayers;
 interface
 
 uses
-  Windows, Classes, SysUtils, Controls, Forms, Graphics,       
+  Windows, Classes, SysUtils, Controls, Forms, Graphics,
   GR32_Types, GR32, GR32_Layers, GR32_Transforms;
 
 type
@@ -297,7 +297,7 @@ type
     destructor Destroy; override;
 
     procedure Cancel;
-    
+
     property ChildLayer: TTransformationLayer read FChildLayer write SetChildLayer;
     property DragState: TRubberbandDragState read FDragState;
     property HandleSize: Integer read FHandleSize write SetHandleSize default 3;
@@ -392,7 +392,8 @@ begin
     UPivotBitmap := TBitmap32.Create;
     UPivotBitmap.SetSize(16,16);
     UPivotBitmap.Clear(0);
-    UPivotBitmap.DrawMode := dmBlend;
+    // UPivotBitmap.DrawMode := dmBlend;
+    UPivotBitmap.DrawMode := dmOpaque;
 
     DrawIconEx(UPivotBitmap.Handle, 0,0, Screen.Cursors[crGrCircleCross], 0, 0, 0, 0, DI_NORMAL);
   end;
@@ -1246,9 +1247,10 @@ function TExtRubberBandLayer.DoHitTest(X, Y: Integer): Boolean;
 
 // Generally, a rubberband layer is always accepting a mouse event. However if rotation is not allowed
 // then we reject the outside of the current bounds as hit.
- 
+
 var
   Local: TPoint;
+//  State: TRubberbandDragState;
 begin
   Result := Visible and inherited DoHitTest(X, Y);
 
@@ -1261,6 +1263,33 @@ begin
 
     Result := PtInRect(Rect(-FThreshold, -FThreshold, FSize.cx + FThreshold, FSize.cy + FThreshold), Local);
   end;
+
+  (*
+  State := GetHitCode( X, Y, [] );
+
+  case State of
+    rdsNone: Result := False;
+    {
+    rdsMoveLayer: ;
+    rdsMovePivot: ;
+    rdsResizeN: ;
+    rdsResizeNE: ;
+    rdsResizeE: ;
+    rdsResizeSE: ;
+    rdsResizeS: ;
+    rdsResizeSW: ;
+    rdsResizeW: ;
+    rdsResizeNW: ;
+    rdsSheerN: ;
+    rdsSheerE: ;
+    rdsSheerS: ;
+    rdsSheerW: ;
+    rdsRotate: ;
+    }
+    else
+      Result := True;
+  end;
+  *)
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -1540,7 +1569,13 @@ begin
     begin
       // Mouse is not within the bounds. So if rotating is allowed we can return the rotation state.
       if rboAllowRotation in FOptions then
+      begin
+        // 적당한 거리안에 있는 경우만 회전 가능하도록
+        if (Local.X >= -LocalThresholdX-70) and (Local.X <= FSize.cx + LocalThresholdX+70) and (Local.Y >= -LocalThresholdY-70) and
+          (Local.Y <= FSize.cy + LocalThresholdY+70) then
+
         Result := rdsRotate;
+      end;
     end;
   end;
 end;
@@ -1905,7 +1940,7 @@ begin
       Changing;
       UpdateTransformation;
       Changed; // Layer collection.
-      
+
     end;
   end;
 

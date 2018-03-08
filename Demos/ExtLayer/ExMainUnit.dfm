@@ -1,9 +1,9 @@
 object MainForm: TMainForm
   Left = 349
   Top = 66
-  Width = 803
-  Height = 648
   Caption = 'Ext Image View Layers Example'
+  ClientHeight = 590
+  ClientWidth = 787
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -20,8 +20,8 @@ object MainForm: TMainForm
   object ImgView: TImgView32
     Left = 0
     Top = 0
-    Width = 664
-    Height = 583
+    Width = 656
+    Height = 571
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baCustom
@@ -41,10 +41,10 @@ object MainForm: TMainForm
     OnPaintStage = ImgViewPaintStage
   end
   object PnlControl: TPanel
-    Left = 664
+    Left = 656
     Top = 0
     Width = 131
-    Height = 583
+    Height = 571
     Align = alRight
     BevelOuter = bvNone
     TabOrder = 1
@@ -69,7 +69,6 @@ object MainForm: TMainForm
         Width = 105
         Height = 21
         DropDownCount = 9
-        ItemHeight = 13
         TabOrder = 0
         Text = '100%'
         OnChange = ScaleComboChange
@@ -378,8 +377,8 @@ object MainForm: TMainForm
   end
   object stat1: TStatusBar
     Left = 0
-    Top = 583
-    Width = 795
+    Top = 571
+    Width = 787
     Height = 19
     AutoHint = True
     Panels = <>
