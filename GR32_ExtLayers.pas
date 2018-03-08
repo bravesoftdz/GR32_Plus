@@ -260,6 +260,8 @@ type
     FOuterColor: TColor32;             // If the alpha value of this color is > 0 then the color is used
                                        // to blend everything outside the rubberband rect by this color.
 
+    FRotateThreshold: Integer;
+
     // Drag/resize support
     FIsDragging: Boolean;
     FDragState: TRubberbandDragState;
@@ -308,6 +310,8 @@ type
     property OuterColor: TColor32 read FOuterColor write SetOuterColor;
     property Size: TSize read FSize write SetSize;
     property Threshold: Integer read FThreshold write FThreshold default 8;
+
+    property RotateThreshold: Integer read FRotateThreshold write FRotateThreshold default 50;
   end;
 
   // TExtBitmapLayer provides some special properties as used for the image editor, like the ability for affine
@@ -1109,6 +1113,8 @@ begin
   FThreshold := 8;
   FSize.cx := 1;
   FSize.cy := 1;
+
+  FRotateThreshold := 50;
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -1275,7 +1281,7 @@ begin
       with FTransformation do
         Local := ReverseTransform(Point(X, Y));
 
-      Result := PtInRect(Rect(-FThreshold - 70, -FThreshold - 70, FSize.cx + FThreshold + 70, FSize.cy + FThreshold + 70), Local);
+      Result := PtInRect(Rect(-FThreshold - FRotateThreshold, -FThreshold - FRotateThreshold, FSize.cx + FThreshold + FRotateThreshold, FSize.cy + FThreshold + FRotateThreshold), Local);
     end
     else
     begin
@@ -1287,33 +1293,6 @@ begin
       Result := PtInRect(Rect(-FThreshold, -FThreshold, FSize.cx + FThreshold, FSize.cy + FThreshold), Local);
     end;
   end;
-
-  (*
-  State := GetHitCode( X, Y, [] );
-
-  case State of
-    rdsNone: Result := False;
-    {
-    rdsMoveLayer: ;
-    rdsMovePivot: ;
-    rdsResizeN: ;
-    rdsResizeNE: ;
-    rdsResizeE: ;
-    rdsResizeSE: ;
-    rdsResizeS: ;
-    rdsResizeSW: ;
-    rdsResizeW: ;
-    rdsResizeNW: ;
-    rdsSheerN: ;
-    rdsSheerE: ;
-    rdsSheerS: ;
-    rdsSheerW: ;
-    rdsRotate: ;
-    }
-    else
-      Result := True;
-  end;
-  *)
 end;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -1498,6 +1477,9 @@ var
   NearBottom,
   NearLeft: Boolean;
   ScaleX, ScaleY: Single;
+
+  RotateThresholdX,
+  RotateThresholdY: Integer;
 begin
   Result := rdsNone;
 
@@ -1511,6 +1493,16 @@ begin
     LayerCollection.GetViewportScale(ScaleX, ScaleY);
     LocalThresholdX := Round(LocalThresholdX / ScaleX);
     LocalThresholdY := Round(LocalThresholdY / ScaleY);
+  end;
+
+  // Add rotateThreshold
+  RotateThresholdX := Abs(Round(FRotateThreshold / FScaling.X));
+  RotateThresholdY := Abs(Round(FRotateThreshold / FScaling.Y));
+  if FScaled and Assigned(LayerCollection) then
+  begin
+    LayerCollection.GetViewportScale(ScaleX, ScaleY);
+    RotateThresholdX := Round(RotateThresholdX / ScaleX);
+    RotateThresholdY := Round(RotateThresholdY / ScaleY);
   end;
 
   // Check rotation Pivot first.
@@ -1594,11 +1586,11 @@ begin
       // Mouse is not within the bounds. So if rotating is allowed we can return the rotation state.
       if rboAllowRotation in FOptions then
       begin
-        // 적당한 거리안에 있는 경우만 회전 가능하도록
-        if (Local.X >= -LocalThresholdX-70) and (Local.X <= FSize.cx + LocalThresholdX+70) and (Local.Y >= -LocalThresholdY-70) and
-          (Local.Y <= FSize.cy + LocalThresholdY+70) then
+        // Result := rdsRotate;
 
-        Result := rdsRotate;
+        if (Local.X >= -LocalThresholdX-RotateThresholdX) and (Local.X <= FSize.cx + LocalThresholdX+RotateThresholdX) and (Local.Y >= -LocalThresholdY-RotateThresholdY) and
+          (Local.Y <= FSize.cy + LocalThresholdY+RotateThresholdY) then
+          Result := rdsRotate;
       end;
     end;
   end;
